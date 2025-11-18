@@ -62,7 +62,7 @@ sudo bash deploy.sh
 
 ### 步骤 4: 等待部署完成
 脚本会自动完成以下操作:
-- ✅ 安装系统依赖 (Node.js, Nginx)
+- ✅ 安装系统依赖 (Node.js, Nginx, pnpm)
 - ✅ 克隆项目
 - ✅ 安装项目依赖
 - ✅ 初始化数据库
@@ -161,8 +161,8 @@ systemctl restart nginx
 ```bash
 cd /var/www/goods-store
 git pull origin main
-cd backend && npm install
-cd ../virtual-goods-store && npm install && npm run build
+cd backend && npm install --omit=dev
+cd ../virtual-goods-store && pnpm install && pnpm run build
 systemctl restart goods-store
 systemctl reload nginx
 ```

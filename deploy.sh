@@ -123,7 +123,15 @@ check_dependencies() {
     else
         log_success "npm 已安装: $(npm -v)"
     fi
-    
+
+    # 检查 pnpm
+    if ! command -v pnpm &> /dev/null; then
+        log_warning "pnpm 未安装"
+        MISSING_DEPS+=("pnpm")
+    else
+        log_success "pnpm 已安装: $(pnpm -v)"
+    fi
+
     # 检查 Nginx
     if ! command -v nginx &> /dev/null; then
         log_warning "Nginx 未安装"
@@ -190,6 +198,13 @@ install_dependencies() {
         fi
         systemctl enable nginx
         log_success "Nginx 安装完成"
+    fi
+
+    # 安装 pnpm
+    if [[ " ${MISSING_DEPS[@]} " =~ " pnpm " ]]; then
+        log_info "安装 pnpm..."
+        npm install -g pnpm
+        log_success "pnpm 安装完成: $(pnpm -v)"
     fi
 
     log_success "所有依赖安装完成"
@@ -299,13 +314,18 @@ install_project_dependencies() {
     # 安装后端依赖
     log_info "安装后端依赖..."
     cd backend
-    npm install --production
+    npm install --omit=dev
     log_success "后端依赖安装完成"
 
     # 安装前端依赖
     log_info "安装前端依赖..."
     cd ../virtual-goods-store
-    npm install
+
+    # 删除可能存在的 pnpm 配置文件，避免冲突
+    rm -f .npmrc
+
+    # 使用 pnpm 安装
+    pnpm install --frozen-lockfile
     log_success "前端依赖安装完成"
 
     cd "$INSTALL_DIR"
@@ -392,7 +412,7 @@ VITE_API_URL=$API_URL
 EOF
 
     log_info "构建前端..."
-    npm run build
+    pnpm run build
 
     log_success "前端构建完成"
 }

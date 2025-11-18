@@ -193,7 +193,7 @@ curl -O https://raw.githubusercontent.com/senma231/goods-store/main/deploy.sh &&
 
 **自动完成的操作**:
 - ✅ 检测系统架构和依赖
-- ✅ 安装 Node.js, Nginx
+- ✅ 安装 Node.js, Nginx, pnpm
 - ✅ 克隆项目并安装依赖
 - ✅ 配置环境变量
 - ✅ 初始化数据库
