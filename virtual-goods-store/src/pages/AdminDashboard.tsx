@@ -1590,13 +1590,13 @@ export function AdminDashboard() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          order.order_status === 'completed' ? 'bg-green-100 text-green-800' :
-                          order.order_status === 'processing' ? 'bg-blue-100 text-blue-800' :
-                          order.order_status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                          order.order_status === 'refunded' ? 'bg-purple-100 text-purple-800' :
+                          order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                          order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                          order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                          order.status === 'refunded' ? 'bg-purple-100 text-purple-800' :
                           'bg-yellow-100 text-yellow-800'
                         }`}>
-                          {getOrderStatusText(order.order_status || 'pending')}
+                          {getOrderStatusText(order.status || 'pending')}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -1605,7 +1605,7 @@ export function AdminDashboard() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {order.payment_status === 'paid' && order.order_status !== 'refunded' && (
+                        {order.payment_status === 'paid' && order.status !== 'refunded' && (
                           <button
                             onClick={() => handleRefundOrder(order.id)}
                             className="text-red-600 hover:text-red-800 mr-3"
@@ -1614,7 +1614,7 @@ export function AdminDashboard() {
                             退款
                           </button>
                         )}
-                        {order.order_status === 'pending' && (
+                        {order.status === 'pending' && (
                           <button
                             onClick={() => handleCancelOrder(order.id)}
                             className="text-gray-600 hover:text-gray-800"
@@ -2962,6 +2962,7 @@ export function AdminDashboard() {
                 </div>
               </div>
             )}
+            </div>
           </div>
         )}
 

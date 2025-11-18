@@ -517,7 +517,6 @@ function PaymentForm() {
         items,
         contact_email: contactEmail,
         contact_name: contactName,
-        notes,
         payment_method: paymentMethod
       });
 
@@ -628,7 +627,7 @@ export function CheckoutPage() {
     // 初始化 Stripe
     const initStripe = async () => {
       try {
-        const promise = await getStripePromise();
+        const promise = getStripePromise();
         setStripePromiseState(promise);
       } catch (error) {
         console.error('初始化 Stripe 失败:', error);
