@@ -29,10 +29,13 @@ curl -O https://raw.githubusercontent.com/senma231/goods-store/main/deploy.sh &&
 在运行脚本前,请准备好以下信息:
 
 - **域名**: 例如 `shop.example.com` (或使用服务器 IP)
-- **Stripe Secret Key**: 从 [Stripe Dashboard](https://dashboard.stripe.com/apikeys) 获取
-  - 测试环境: `sk_test_...`
-  - 生产环境: `sk_live_...`
 - **邮箱**: 用于 SSL 证书申请 (可选)
+
+**可在部署后通过管理后台配置**:
+- Stripe Secret Key (支付功能必需)
+- Stripe Webhook Secret
+- USDT 支付地址
+- 通知渠道 (飞书/Telegram/微信)
 
 ---
 
@@ -56,9 +59,8 @@ sudo bash deploy.sh
 2. 安装目录 (默认: `/var/www/goods-store`)
 3. 后端端口 (默认: `8787`)
 4. JWT Secret (可自动生成)
-5. Stripe Secret Key
-6. Stripe Webhook Secret (可选)
-7. 是否配置 SSL
+5. 是否配置 Stripe (可选，建议部署后在管理后台配置)
+6. 是否配置 SSL (可选)
 
 ### 步骤 4: 等待部署完成
 脚本会自动完成以下操作:
@@ -90,36 +92,46 @@ sudo bash deploy.sh
 
 ## 🔧 部署后配置
 
-### 1. 配置 Stripe Webhook
+### 1. 登录管理后台并修改密码
+
+访问 `https://your-domain.com/admin` 并使用默认账号登录:
+- 邮箱: `admin@shop.com`
+- 密码: `admin123`
+
+⚠️ **立即修改密码**: 登录后前往 **系统设置 → 账号管理** 修改密码
+
+### 2. 配置 Stripe 支付
+
+在管理后台 → 系统设置 → 支付配置:
+1. 输入 Stripe Secret Key (`sk_test_...` 或 `sk_live_...`)
+2. 输入 Stripe Publishable Key (`pk_test_...` 或 `pk_live_...`)
+3. 保存配置
+
+### 3. 配置 Stripe Webhook
 
 1. 登录 [Stripe Dashboard](https://dashboard.stripe.com/webhooks)
 2. 点击 "Add endpoint"
 3. 输入 Webhook URL: `https://your-domain.com/api/payments/stripe/webhook`
 4. 选择事件: `payment_intent.succeeded`
 5. 复制 Webhook Secret
-6. 更新服务器配置:
-   ```bash
-   nano /var/www/goods-store/backend/.env
-   # 添加: STRIPE_WEBHOOK_SECRET=whsec_...
-   pm2 restart goods-store-backend
-   ```
+6. 在管理后台 → 系统设置 → 支付配置 中填入 Webhook Secret
 
-### 2. 配置系统设置
+### 4. 配置其他系统设置
 
 登录管理后台,进入 "系统设置":
 - ✅ 网站名称
 - ✅ 联系邮箱
-- ✅ USDT 收款地址
+- ✅ USDT 收款地址 (可选)
 - ✅ 邮件服务器 (可选)
 
-### 3. 配置通知渠道
+### 5. 配置通知渠道 (可选)
 
 进入 "通知管理" → "通知渠道":
 - ✅ 飞书 Webhook
 - ✅ Telegram Bot
 - ✅ 微信企业号
 
-### 4. 添加商品
+### 6. 添加商品
 
 1. 创建商品分类
 2. 添加虚拟商品

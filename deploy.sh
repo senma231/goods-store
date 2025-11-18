@@ -239,15 +239,20 @@ get_user_input() {
         log_info "已自动生成 JWT Secret"
     fi
 
-    # Stripe API Key
-    read -p "请输入 Stripe Secret Key (sk_test_... 或 sk_live_...): " STRIPE_SECRET_KEY
-    while [ -z "$STRIPE_SECRET_KEY" ]; do
-        log_error "Stripe Secret Key 不能为空"
-        read -p "请输入 Stripe Secret Key: " STRIPE_SECRET_KEY
-    done
+    # Stripe API Key (可选)
+    echo ""
+    log_info "Stripe 支付配置 (可选，可在部署后通过管理后台配置)"
+    read -p "是否现在配置 Stripe? (y/n) [默认: n]: " CONFIGURE_STRIPE
+    CONFIGURE_STRIPE=${CONFIGURE_STRIPE:-n}
 
-    # Stripe Webhook Secret
-    read -p "请输入 Stripe Webhook Secret (whsec_..., 可选): " STRIPE_WEBHOOK_SECRET
+    if [ "$CONFIGURE_STRIPE" = "y" ] || [ "$CONFIGURE_STRIPE" = "Y" ]; then
+        read -p "请输入 Stripe Secret Key (sk_test_... 或 sk_live_...): " STRIPE_SECRET_KEY
+        read -p "请输入 Stripe Webhook Secret (whsec_..., 可选): " STRIPE_WEBHOOK_SECRET
+    else
+        STRIPE_SECRET_KEY=""
+        STRIPE_WEBHOOK_SECRET=""
+        log_info "跳过 Stripe 配置，可稍后在管理后台配置"
+    fi
 
     # 是否配置 SSL
     read -p "是否配置 SSL 证书? (y/n) [默认: n]: " SETUP_SSL
@@ -268,7 +273,11 @@ get_user_input() {
     log_info "安装目录: $INSTALL_DIR"
     log_info "后端端口: $BACKEND_PORT"
     log_info "JWT Secret: ${JWT_SECRET:0:10}..."
-    log_info "Stripe Key: ${STRIPE_SECRET_KEY:0:15}..."
+    if [ -n "$STRIPE_SECRET_KEY" ]; then
+        log_info "Stripe Key: ${STRIPE_SECRET_KEY:0:15}..."
+    else
+        log_info "Stripe Key: 未配置 (可在管理后台配置)"
+    fi
     log_info "配置 SSL: $SETUP_SSL"
     echo ""
 
@@ -346,9 +355,31 @@ NODE_ENV=production
 # JWT 配置
 JWT_SECRET=$JWT_SECRET
 
-# Stripe 配置
+# Stripe 配置 (可在管理后台配置)
+EOF
+
+    # 如果配置了 Stripe，添加到 .env
+    if [ -n "$STRIPE_SECRET_KEY" ]; then
+        cat >> .env << EOF
 STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY
+EOF
+    else
+        cat >> .env << EOF
+# STRIPE_SECRET_KEY=
+EOF
+    fi
+
+    if [ -n "$STRIPE_WEBHOOK_SECRET" ]; then
+        cat >> .env << EOF
 STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET
+EOF
+    else
+        cat >> .env << EOF
+# STRIPE_WEBHOOK_SECRET=
+EOF
+    fi
+
+    cat >> .env << EOF
 
 # 数据库配置
 DATABASE_PATH=./data/database.db
@@ -641,7 +672,12 @@ show_deployment_info() {
     log_info "========== 下一步 =========="
     log_info "1. 访问网站并登录管理后台"
     log_info "2. 修改管理员密码"
-    log_info "3. 配置系统设置 (Stripe Webhook URL 等)"
+    log_info "3. 配置系统设置:"
+    if [ -z "$STRIPE_SECRET_KEY" ]; then
+        log_info "   - 配置 Stripe 支付密钥 (必需)"
+    fi
+    log_info "   - 配置 Stripe Webhook URL"
+    log_info "   - 配置 USDT 支付地址 (可选)"
     log_info "4. 添加商品分类和商品"
     log_info "5. 配置通知渠道 (飞书/Telegram/微信)"
     log_info "6. 定期备份数据库: $INSTALL_DIR/backend/data/database.db"
