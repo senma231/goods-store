@@ -75,6 +75,20 @@ export const auth = {
   async getUser() {
     return request<{ user: any }>('/auth/me');
   },
+
+  async changePassword(currentPassword: string, newPassword: string) {
+    return request<{ message: string }>('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  },
+
+  async updateProfile(data: { full_name?: string; email?: string }) {
+    return request<{ user: any }>('/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
 };
 
 // 商品 API

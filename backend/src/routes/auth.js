@@ -127,6 +127,100 @@ router.get('/me', authenticateToken, async (req, res) => {
   }
 });
 
+// 修改密码
+router.post('/change-password', authenticateToken, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: '当前密码和新密码不能为空' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: '新密码长度至少为 6 位' });
+    }
+
+    const db = getDb();
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ error: '用户不存在' });
+    }
+
+    // 验证当前密码
+    const isValidPassword = bcrypt.compareSync(currentPassword, user.password_hash);
+    if (!isValidPassword) {
+      return res.status(401).json({ error: '当前密码错误' });
+    }
+
+    // 更新密码
+    const newPasswordHash = bcrypt.hashSync(newPassword, 10);
+    db.prepare(`
+      UPDATE users
+      SET password_hash = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(newPasswordHash, req.user.id);
+
+    res.json({ message: '密码修改成功' });
+  } catch (error) {
+    console.error('修改密码错误:', error);
+    res.status(500).json({ error: '修改密码失败' });
+  }
+});
+
+// 更新用户信息
+router.put('/profile', authenticateToken, async (req, res) => {
+  try {
+    const { full_name, email } = req.body;
+    const db = getDb();
+
+    // 如果要修改邮箱，检查新邮箱是否已被使用
+    if (email && email !== req.user.email) {
+      const existingUser = db.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(email, req.user.id);
+      if (existingUser) {
+        return res.status(400).json({ error: '该邮箱已被使用' });
+      }
+    }
+
+    const updates = [];
+    const values = [];
+
+    if (full_name !== undefined) {
+      updates.push('full_name = ?');
+      values.push(full_name);
+    }
+
+    if (email !== undefined) {
+      updates.push('email = ?');
+      values.push(email);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: '没有要更新的字段' });
+    }
+
+    updates.push('updated_at = CURRENT_TIMESTAMP');
+    values.push(req.user.id);
+
+    db.prepare(`
+      UPDATE users
+      SET ${updates.join(', ')}
+      WHERE id = ?
+    `).run(...values);
+
+    const updatedUser = db.prepare(`
+      SELECT id, email, full_name, role, created_at
+      FROM users
+      WHERE id = ?
+    `).get(req.user.id);
+
+    res.json({ user: updatedUser });
+  } catch (error) {
+    console.error('更新用户信息错误:', error);
+    res.status(500).json({ error: '更新用户信息失败' });
+  }
+});
+
 // 登出（客户端删除 token 即可，这里只是一个占位符）
 router.post('/logout', (req, res) => {
   res.json({ message: '登出成功' });

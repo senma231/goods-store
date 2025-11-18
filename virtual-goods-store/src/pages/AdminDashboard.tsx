@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 // import { supabase } from '@/lib/supabase';
-import { products as productsApi, orders as ordersApi, categories as categoriesApi, siteSettings, notificationChannels, virtualAssetsApi } from '@/lib/api';
+import { products as productsApi, orders as ordersApi, categories as categoriesApi, siteSettings, notificationChannels, virtualAssetsApi, auth } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -2591,30 +2591,131 @@ export function AdminDashboard() {
 
         {/* 网站设置 */}
         {activeTab === 'settings' && (
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h2 className="text-2xl font-bold">网站设置</h2>
-                <p className="text-gray-600 mt-1">配置网站全局设置，包括站点信息、SEO、广告等</p>
+          <div className="space-y-6">
+            {/* 账号管理 */}
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <h2 className="text-2xl font-bold mb-4">账号管理</h2>
+              <p className="text-gray-600 mb-6">管理您的管理员账号信息和密码</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* 账号信息 */}
+                <div className="border rounded-lg p-4">
+                  <h3 className="font-semibold mb-4 flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    账号信息
+                  </h3>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">邮箱</label>
+                      <p className="font-mono text-sm bg-gray-50 px-3 py-2 rounded">{user?.email}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">角色</label>
+                      <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                        管理员
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 修改密码 */}
+                <div className="border rounded-lg p-4">
+                  <h3 className="font-semibold mb-4 flex items-center gap-2">
+                    <Settings className="w-5 h-5" />
+                    修改密码
+                  </h3>
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.currentTarget);
+                    const currentPassword = formData.get('currentPassword') as string;
+                    const newPassword = formData.get('newPassword') as string;
+                    const confirmPassword = formData.get('confirmPassword') as string;
+
+                    if (newPassword !== confirmPassword) {
+                      alert('两次输入的新密码不一致');
+                      return;
+                    }
+
+                    if (newPassword.length < 6) {
+                      alert('新密码长度至少为 6 位');
+                      return;
+                    }
+
+                    try {
+                      await auth.changePassword(currentPassword, newPassword);
+                      alert('密码修改成功,请重新登录');
+                      await auth.signOut();
+                      navigate('/login');
+                    } catch (error: any) {
+                      alert(error.message || '密码修改失败');
+                    }
+                  }} className="space-y-3">
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">当前密码</label>
+                      <input
+                        type="password"
+                        name="currentPassword"
+                        required
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">新密码</label>
+                      <input
+                        type="password"
+                        name="newPassword"
+                        required
+                        minLength={6}
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">确认新密码</label>
+                      <input
+                        type="password"
+                        name="confirmPassword"
+                        required
+                        minLength={6}
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2"
+                    >
+                      <Save className="w-4 h-4" />
+                      修改密码
+                    </button>
+                  </form>
+                </div>
               </div>
-              <button
-                onClick={() => {
-                  setShowSettingForm(true);
-                  setEditingSetting(null);
-                  setSettingForm({
-                    setting_key: '',
-                    setting_value: '',
-                    setting_type: 'string',
-                    description: '',
-                    category: 'general'
-                  });
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-              >
-                <Plus className="w-5 h-5" />
-                新建设置
-              </button>
             </div>
+
+            {/* 网站设置 */}
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold">网站设置</h2>
+                  <p className="text-gray-600 mt-1">配置网站全局设置，包括站点信息、SEO、广告等</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowSettingForm(true);
+                    setEditingSetting(null);
+                    setSettingForm({
+                      setting_key: '',
+                      setting_value: '',
+                      setting_type: 'string',
+                      description: '',
+                      category: 'general'
+                    });
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                >
+                  <Plus className="w-5 h-5" />
+                  新建设置
+                </button>
+              </div>
 
             {/* 按分类显示设置 */}
             {['general', 'seo', 'ads', 'contact'].map((category) => {
