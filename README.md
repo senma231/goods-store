@@ -17,12 +17,13 @@
   - 飞书（Feishu）
   - Telegram
   - 微信（WeChat）
-- ✅ **管理后台**: 
+- ✅ **管理后台**:
   - 商品管理
   - 订单管理
   - 虚拟资产管理
   - 系统设置
   - 通知配置
+  - 账号管理（修改密码）
 
 ### 技术特性
 - 📱 响应式设计，支持移动端
@@ -109,14 +110,22 @@ npm run dev
 - 邮箱: `admin@shop.com`
 - 密码: `admin123`
 
+⚠️ **重要**: 首次登录后请立即在 **系统设置 → 账号管理** 中修改密码！
+
 ## 📖 文档
 
-详细文档请查看 `docs` 目录：
-- [部署指南](./README-STANDALONE-DEPLOYMENT.md)
-- [使用指南](./docs/usage-guide.md)
-- [通知系统配置](./docs/notification-system-guide.md)
-- [Stripe 集成指南](./docs/stripe-integration-guide.md)
-- [游客购物指南](./docs/guest-purchase-guide.md)
+### 部署文档
+- [快速部署指南](./QUICK_DEPLOY.md) - 一键部署说明
+- [部署脚本指南](./DEPLOY_SCRIPT_GUIDE.md) - 自动部署脚本详细文档
+- [手动部署指南](./README-STANDALONE-DEPLOYMENT.md) - 手动部署步骤
+- [部署检查清单](./DEPLOYMENT_CHECKLIST.md) - 部署前后检查事项
+
+### 功能文档
+- [使用指南](./docs/usage-guide.md) - 基本使用说明
+- [通知系统配置](./docs/notification-system-guide.md) - 飞书/Telegram/微信通知配置
+- [Stripe 集成指南](./docs/stripe-integration-guide.md) - Stripe 支付配置
+- [游客购物指南](./docs/guest-purchase-guide.md) - 游客购物功能说明
+- [管理员账号管理](./docs/admin-account-management.md) - 修改密码和账号信息
 
 ## 🔧 配置说明
 
@@ -161,7 +170,42 @@ goods-store/
 
 ## 🚀 部署
 
-详细部署指南请参考 [README-STANDALONE-DEPLOYMENT.md](./README-STANDALONE-DEPLOYMENT.md)
+### 一键部署（推荐）
+
+在您的 Linux 服务器上执行以下命令即可自动部署：
+
+```bash
+wget https://raw.githubusercontent.com/senma231/goods-store/main/deploy.sh && sudo bash deploy.sh
+```
+
+或使用 curl:
+
+```bash
+curl -O https://raw.githubusercontent.com/senma231/goods-store/main/deploy.sh && sudo bash deploy.sh
+```
+
+**支持的系统**:
+- Ubuntu 18.04+
+- Debian 10+
+- CentOS 7+
+- RHEL 7+
+- Fedora
+
+**自动完成的操作**:
+- ✅ 检测系统架构和依赖
+- ✅ 安装 Node.js, Nginx, PM2
+- ✅ 克隆项目并安装依赖
+- ✅ 配置环境变量
+- ✅ 初始化数据库
+- ✅ 构建前端
+- ✅ 配置 Nginx 反向代理
+- ✅ 可选配置 SSL 证书
+- ✅ 启动服务并设置自动重启
+
+**详细文档**:
+- [快速部署指南](./QUICK_DEPLOY.md) - 一键部署说明
+- [部署脚本指南](./DEPLOY_SCRIPT_GUIDE.md) - 脚本详细文档
+- [手动部署指南](./README-STANDALONE-DEPLOYMENT.md) - 手动部署步骤
 
 ## 📝 License
 
