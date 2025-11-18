@@ -149,7 +149,7 @@ router.post('/confirm-payment', async (req, res) => {
         const productNames = orderItems.map(item => `${item.product_name} x${item.quantity}`).join(', ');
 
         // 获取支付方式的中文名称
-        const paymentMethodNames: Record<string, string> = {
+        const paymentMethodNames = {
           'stripe': 'Stripe',
           'usdt': 'USDT',
           'alipay': '支付宝',

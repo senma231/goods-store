@@ -122,22 +122,59 @@ else
     fi
 fi
 
-# 7. 重启 systemd 服务
+# 7. 检查并创建 systemd 服务
+log_info "检查 systemd 服务..."
+
+# 检查服务文件是否存在
+SERVICE_NAME=""
+if [ -f "/etc/systemd/system/goods-store.service" ]; then
+    SERVICE_NAME="goods-store"
+elif [ -f "/etc/systemd/system/goods-store-backend.service" ]; then
+    SERVICE_NAME="goods-store-backend"
+else
+    log_warning "systemd 服务文件不存在，创建中..."
+
+    cat > /etc/systemd/system/goods-store.service << 'EOF'
+[Unit]
+Description=Virtual Goods Store Backend
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/goods-store/backend
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node src/server.js
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=goods-store
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    SERVICE_NAME="goods-store"
+fi
+
+log_info "使用服务: $SERVICE_NAME"
+
+# 重启服务
 log_info "重启 systemd 服务..."
 systemctl daemon-reload
-systemctl restart goods-store-backend
+systemctl restart $SERVICE_NAME
 
 sleep 2
 
 # 8. 检查服务状态
 log_info "检查服务状态..."
-if systemctl is-active --quiet goods-store-backend; then
+if systemctl is-active --quiet $SERVICE_NAME; then
     log_info "✅ 服务运行中"
-    systemctl status goods-store-backend --no-pager | head -20
+    systemctl status $SERVICE_NAME --no-pager | head -20
 else
     log_error "❌ 服务启动失败"
     log_error "查看详细日志:"
-    journalctl -u goods-store-backend -n 50 --no-pager
+    journalctl -u $SERVICE_NAME -n 50 --no-pager
 fi
 
 # 9. 测试 API
