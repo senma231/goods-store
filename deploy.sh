@@ -132,14 +132,6 @@ check_dependencies() {
         log_success "Nginx 已安装: $(nginx -v 2>&1)"
     fi
     
-    # 检查 PM2
-    if ! command -v pm2 &> /dev/null; then
-        log_warning "PM2 未安装"
-        MISSING_DEPS+=("pm2")
-    else
-        log_success "PM2 已安装: $(pm2 -v)"
-    fi
-    
     # 检查 Certbot (可选)
     if ! command -v certbot &> /dev/null; then
         log_warning "Certbot 未安装 (SSL 证书工具,可选)"
@@ -198,13 +190,6 @@ install_dependencies() {
         fi
         systemctl enable nginx
         log_success "Nginx 安装完成"
-    fi
-
-    # 安装 PM2
-    if [[ " ${MISSING_DEPS[@]} " =~ " pm2 " ]]; then
-        log_info "安装 PM2..."
-        npm install -g pm2
-        log_success "PM2 安装完成: $(pm2 -v)"
     fi
 
     log_success "所有依赖安装完成"
@@ -522,53 +507,7 @@ configure_ssl() {
     log_success "SSL 证书配置完成"
 }
 
-# 配置 PM2
-configure_pm2() {
-    print_header "配置 PM2"
-
-    cd "$INSTALL_DIR/backend"
-
-    # 创建 PM2 配置文件
-    cat > ecosystem.config.js << EOF
-module.exports = {
-  apps: [{
-    name: 'goods-store-backend',
-    script: './src/server.js',
-    instances: 1,
-    exec_mode: 'fork',
-    autorestart: true,
-    watch: false,
-    max_memory_restart: '500M',
-    env: {
-      NODE_ENV: 'production',
-      PORT: $BACKEND_PORT
-    },
-    error_file: './logs/error.log',
-    out_file: './logs/out.log',
-    log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-    merge_logs: true
-  }]
-};
-EOF
-
-    # 创建日志目录
-    mkdir -p logs
-
-    # 启动应用
-    log_info "启动后端服务..."
-    pm2 start ecosystem.config.js
-
-    # 保存 PM2 配置
-    pm2 save
-
-    # 设置开机自启
-    log_info "配置开机自启..."
-    pm2 startup systemd -u root --hp /root
-
-    log_success "PM2 配置完成"
-}
-
-# 创建 systemd 服务 (备用方案)
+# 创建 systemd 服务
 create_systemd_service() {
     print_header "创建 Systemd 服务"
 
@@ -594,16 +533,28 @@ SyslogIdentifier=goods-store
 WantedBy=multi-user.target
 EOF
 
+    # 创建日志目录
+    mkdir -p "$INSTALL_DIR/backend/logs"
+
     # 重新加载 systemd
     systemctl daemon-reload
 
-    log_info "Systemd 服务已创建"
-    log_info "使用以下命令管理服务:"
-    log_info "  启动: systemctl start goods-store"
-    log_info "  停止: systemctl stop goods-store"
-    log_info "  重启: systemctl restart goods-store"
-    log_info "  状态: systemctl status goods-store"
-    log_info "  开机自启: systemctl enable goods-store"
+    # 启动服务
+    log_info "启动后端服务..."
+    systemctl start goods-store
+
+    # 设置开机自启
+    log_info "设置开机自启..."
+    systemctl enable goods-store
+
+    # 检查服务状态
+    if systemctl is-active --quiet goods-store; then
+        log_success "后端服务启动成功"
+    else
+        log_error "后端服务启动失败，请检查日志: journalctl -u goods-store -n 50"
+    fi
+
+    log_success "Systemd 服务配置完成"
 }
 
 # 配置防火墙
@@ -651,10 +602,11 @@ show_deployment_info() {
     log_warning "请立即登录并修改密码!"
     echo ""
     log_info "========== 服务管理 =========="
-    log_info "查看后端状态: pm2 status"
-    log_info "查看后端日志: pm2 logs goods-store-backend"
-    log_info "重启后端: pm2 restart goods-store-backend"
-    log_info "停止后端: pm2 stop goods-store-backend"
+    log_info "查看后端状态: systemctl status goods-store"
+    log_info "查看后端日志: journalctl -u goods-store -f"
+    log_info "重启后端: systemctl restart goods-store"
+    log_info "停止后端: systemctl stop goods-store"
+    log_info "启动后端: systemctl start goods-store"
     echo ""
     log_info "查看 Nginx 状态: systemctl status nginx"
     log_info "重启 Nginx: systemctl restart nginx"
@@ -738,13 +690,10 @@ EOF
     # 11. 配置 SSL (可选)
     configure_ssl
 
-    # 12. 配置 PM2
-    configure_pm2
-
-    # 13. 创建 Systemd 服务 (备用)
+    # 12. 创建 Systemd 服务
     create_systemd_service
 
-    # 14. 配置防火墙
+    # 13. 配置防火墙
     configure_firewall
 
     # 15. 显示部署信息

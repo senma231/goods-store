@@ -193,14 +193,14 @@ curl -O https://raw.githubusercontent.com/senma231/goods-store/main/deploy.sh &&
 
 **自动完成的操作**:
 - ✅ 检测系统架构和依赖
-- ✅ 安装 Node.js, Nginx, PM2
+- ✅ 安装 Node.js, Nginx
 - ✅ 克隆项目并安装依赖
 - ✅ 配置环境变量
 - ✅ 初始化数据库
 - ✅ 构建前端
 - ✅ 配置 Nginx 反向代理
 - ✅ 可选配置 SSL 证书
-- ✅ 启动服务并设置自动重启
+- ✅ 使用 Systemd 管理服务并设置开机自启
 
 **详细文档**:
 - [快速部署指南](./QUICK_DEPLOY.md) - 一键部署说明

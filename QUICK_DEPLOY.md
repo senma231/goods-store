@@ -62,14 +62,15 @@ sudo bash deploy.sh
 
 ### 步骤 4: 等待部署完成
 脚本会自动完成以下操作:
-- ✅ 安装系统依赖
+- ✅ 安装系统依赖 (Node.js, Nginx)
 - ✅ 克隆项目
 - ✅ 安装项目依赖
 - ✅ 初始化数据库
 - ✅ 构建前端
 - ✅ 配置 Nginx
 - ✅ 配置 SSL (可选)
-- ✅ 启动服务
+- ✅ 创建 Systemd 服务
+- ✅ 启动服务并设置开机自启
 
 ### 步骤 5: 访问网站
 部署完成后,访问您的域名:
@@ -130,14 +131,14 @@ sudo bash deploy.sh
 
 ### 查看服务状态
 ```bash
-pm2 status
+systemctl status goods-store
 systemctl status nginx
 ```
 
 ### 查看日志
 ```bash
 # 后端日志
-pm2 logs goods-store-backend
+journalctl -u goods-store -f
 
 # Nginx 日志
 tail -f /var/log/nginx/access.log
@@ -147,7 +148,7 @@ tail -f /var/log/nginx/error.log
 ### 重启服务
 ```bash
 # 重启后端
-pm2 restart goods-store-backend
+systemctl restart goods-store
 
 # 重启 Nginx
 systemctl restart nginx
@@ -162,7 +163,7 @@ cd /var/www/goods-store
 git pull origin main
 cd backend && npm install
 cd ../virtual-goods-store && npm install && npm run build
-pm2 restart goods-store-backend
+systemctl restart goods-store
 systemctl reload nginx
 ```
 
