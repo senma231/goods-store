@@ -304,15 +304,135 @@ router.get('/:id', optionalAuth, async (req, res) => {
 
     const items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(id);
 
+    // 获取发货信息（包含虚拟资产详情）
+    const deliveries = db.prepare(`
+      SELECT
+        d.*,
+        va.asset_type,
+        va.asset_value,
+        va.product_id
+      FROM deliveries d
+      LEFT JOIN virtual_assets va ON d.virtual_asset_id = va.id
+      WHERE d.order_id = ?
+      ORDER BY d.sent_at DESC
+    `).all(id);
+
+    // 格式化发货数据
+    const formattedDeliveries = deliveries.map(delivery => ({
+      id: delivery.id,
+      order_id: delivery.order_id,
+      virtual_asset_id: delivery.virtual_asset_id,
+      sent_at: delivery.sent_at,
+      status: delivery.status,
+      delivery_method: delivery.delivery_method,
+      content_type: delivery.content_type,
+      content_data: delivery.content_data,
+      virtual_assets: delivery.virtual_asset_id ? {
+        asset_type: delivery.asset_type,
+        asset_value: delivery.asset_value,
+        product_id: delivery.product_id
+      } : null
+    }));
+
     res.json({
       order: {
         ...order,
-        items
+        status: order.order_status, // 字段映射
+        items,
+        deliveries: formattedDeliveries
       }
     });
   } catch (error) {
     console.error('获取订单详情错误:', error);
     res.status(500).json({ error: '获取订单详情失败' });
+  }
+});
+
+// 手动发货 (管理员)
+router.post('/:id/manual-delivery', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { deliveries } = req.body; // [{ product_id, asset_type, asset_value }]
+
+    if (!deliveries || !Array.isArray(deliveries) || deliveries.length === 0) {
+      return res.status(400).json({ error: '请提供发货内容' });
+    }
+
+    const db = getDb();
+
+    // 获取订单信息
+    const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
+    if (!order) {
+      return res.status(404).json({ error: '订单不存在' });
+    }
+
+    // 获取订单商品
+    const orderItems = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(id);
+
+    const createdDeliveries = [];
+
+    // 创建发货记录
+    for (const delivery of deliveries) {
+      const { product_id, asset_type, asset_value } = delivery;
+
+      // 查找对应的订单项
+      const orderItem = orderItems.find(item => item.product_id === product_id);
+      if (!orderItem) {
+        console.warn(`订单中没有商品 ${product_id}，跳过`);
+        continue;
+      }
+
+      const deliveryId = uuidv4();
+      db.prepare(`
+        INSERT INTO deliveries (
+          id, order_id, product_id, delivery_email,
+          delivery_method, content_type, content_data, status, sent_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      `).run(
+        deliveryId,
+        id,
+        product_id,
+        order.contact_email,
+        'manual',
+        asset_type,
+        JSON.stringify({
+          product_name: orderItem.product_name,
+          asset_type,
+          asset_value
+        }),
+        'sent'
+      );
+
+      createdDeliveries.push({
+        id: deliveryId,
+        product_name: orderItem.product_name,
+        asset_type,
+        asset_value
+      });
+
+      console.log(`✅ 手动发货: ${asset_value} 给订单 ${id}`);
+    }
+
+    // 更新订单状态为已完成
+    db.prepare(`
+      UPDATE orders
+      SET order_status = 'completed', updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(id);
+
+    console.log(`✅ 订单 ${id} 手动发货完成，共发货 ${createdDeliveries.length} 个商品`);
+
+    res.json({
+      success: true,
+      message: '手动发货成功',
+      deliveries: createdDeliveries
+    });
+  } catch (error) {
+    console.error('手动发货错误:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || '手动发货失败'
+    });
   }
 });
 

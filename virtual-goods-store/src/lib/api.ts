@@ -269,6 +269,13 @@ export const orders = {
       method: 'DELETE',
     });
   },
+
+  async manualDelivery(orderId: string, deliveries: Array<{ product_id: string; asset_type: string; asset_value: string }>) {
+    return request<{ success: boolean; message: string; deliveries: any[] }>(`/orders/${orderId}/manual-delivery`, {
+      method: 'POST',
+      body: JSON.stringify({ deliveries }),
+    });
+  },
 };
 
 // 支付 API

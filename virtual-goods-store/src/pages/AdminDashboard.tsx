@@ -32,6 +32,7 @@ import {
   Send
 } from 'lucide-react';
 import type { Product, Order } from '@/types';
+import { OrderDetailModal } from '@/components/OrderDetailModal';
 
 interface PaymentMethod {
   id: string;
@@ -78,6 +79,10 @@ export function AdminDashboard() {
 
   // 发货失败订单状态
   const [failedDeliveryOrders, setFailedDeliveryOrders] = useState<any[]>([]);
+
+  // 订单详情弹窗状态
+  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+  const [showOrderDetail, setShowOrderDetail] = useState(false);
 
   // 邮件配置状态
   const [emailConfig, setEmailConfig] = useState({
@@ -1632,7 +1637,21 @@ export function AdminDashboard() {
                   {orders.map((order) => (
                     <tr key={order.id}>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{order.order_number}</div>
+                        <button
+                          onClick={async () => {
+                            try {
+                              const { order: orderDetail } = await ordersApi.getById(order.id);
+                              setSelectedOrder(orderDetail);
+                              setShowOrderDetail(true);
+                            } catch (error) {
+                              console.error('获取订单详情失败:', error);
+                              alert('获取订单详情失败');
+                            }
+                          }}
+                          className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                          {order.order_number}
+                        </button>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">${order.total_amount}</div>
@@ -3094,6 +3113,20 @@ export function AdminDashboard() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* 订单详情弹窗 */}
+        {showOrderDetail && selectedOrder && (
+          <OrderDetailModal
+            order={selectedOrder}
+            onClose={() => {
+              setShowOrderDetail(false);
+              setSelectedOrder(null);
+            }}
+            onUpdate={() => {
+              loadOrders();
+            }}
+          />
         )}
       </div>
     </div>
