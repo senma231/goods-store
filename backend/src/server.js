@@ -60,10 +60,17 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// Stripe Webhook 需要原始 body，必须在 express.json() 之前处理
+// ⚠️ 重要：Stripe Webhook 必须在 express.json() 之前注册
+// 因为 Webhook 需要原始 body 来验证签名
+// 参考：https://docs.stripe.com/webhooks/signature#verify-official-libraries
+
+// 1. 先为 Webhook 路由配置 raw body 解析
 app.use('/api/payments/stripe/webhook', express.raw({ type: 'application/json' }));
 
-// 其他路由使用 JSON 解析
+// 2. 然后立即注册 Webhook 路由（在 express.json() 之前）
+app.use('/api/payments', paymentsRoutes);
+
+// 3. 最后才配置 JSON 解析（用于其他所有路由）
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -82,13 +89,12 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// API 路由
+// API 路由（除了 payments，已经在上面注册）
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productsRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use('/api/cart', cartRoutes);
-app.use('/api/payments', paymentsRoutes);
 app.use('/api/notification-channels', notificationChannelsRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/virtual-assets', virtualAssetsRoutes);
