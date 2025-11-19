@@ -60,15 +60,21 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// ⚠️ 重要：Stripe Webhook 必须在 express.json() 之前注册
-// 因为 Webhook 需要原始 body 来验证签名
+// ⚠️ 重要：Stripe Webhook 需要原始 body 来验证签名
 // 参考：https://docs.stripe.com/webhooks/signature#verify-official-libraries
+// 解决方案：条件性地应用 JSON 解析，跳过 webhook 路径
 
-// 1. 先为 Webhook 路由配置 raw body 解析（只针对 webhook 路径）
+// 1. 为 Webhook 路由配置 raw body 解析
 app.use('/api/payments/stripe/webhook', express.raw({ type: 'application/json' }));
 
-// 2. 然后配置 JSON 解析（用于其他所有路由）
-app.use(express.json());
+// 2. 为其他所有路由配置 JSON 解析（跳过 webhook 路径）
+app.use((req, res, next) => {
+  if (req.path === '/api/payments/stripe/webhook') {
+    next();
+  } else {
+    express.json()(req, res, next);
+  }
+});
 app.use(express.urlencoded({ extended: true }));
 
 // 静态文件服务
