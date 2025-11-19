@@ -43,9 +43,30 @@ fi
 
 echo ""
 echo -e "${GREEN}步骤 1/7: 备份数据库...${NC}"
-BACKUP_FILE="backend/database.sqlite.backup.$(date +%Y%m%d_%H%M%S)"
-sudo cp backend/database.sqlite $BACKUP_FILE
-echo -e "${GREEN}✅ 数据库已备份到: $BACKUP_FILE${NC}"
+
+# 查找数据库文件
+DB_FILE=""
+if [ -f "backend/database.sqlite" ]; then
+    DB_FILE="backend/database.sqlite"
+elif [ -f "backend/data/database.sqlite" ]; then
+    DB_FILE="backend/data/database.sqlite"
+elif [ -f "database.sqlite" ]; then
+    DB_FILE="database.sqlite"
+else
+    echo -e "${YELLOW}⚠️  未找到数据库文件，跳过备份${NC}"
+    echo "   常见位置："
+    echo "   - backend/database.sqlite"
+    echo "   - backend/data/database.sqlite"
+    echo "   - database.sqlite"
+fi
+
+if [ -n "$DB_FILE" ]; then
+    BACKUP_FILE="${DB_FILE}.backup.$(date +%Y%m%d_%H%M%S)"
+    sudo cp $DB_FILE $BACKUP_FILE
+    echo -e "${GREEN}✅ 数据库已备份到: $BACKUP_FILE${NC}"
+else
+    echo -e "${YELLOW}⚠️  跳过数据库备份${NC}"
+fi
 
 echo ""
 echo -e "${GREEN}步骤 2/7: 停止服务...${NC}"
@@ -60,10 +81,23 @@ echo -e "${GREEN}✅ 代码已更新${NC}"
 
 echo ""
 echo -e "${GREEN}步骤 4/7: 运行数据库迁移...${NC}"
-cd backend
-node src/database/migrations/add-product-delivery-fields.js
-cd ..
-echo -e "${GREEN}✅ 数据库迁移完成${NC}"
+
+# 查找迁移脚本
+MIGRATION_SCRIPT=""
+if [ -f "backend/src/database/migrations/add-product-delivery-fields.js" ]; then
+    MIGRATION_SCRIPT="backend/src/database/migrations/add-product-delivery-fields.js"
+elif [ -f "src/database/migrations/add-product-delivery-fields.js" ]; then
+    MIGRATION_SCRIPT="src/database/migrations/add-product-delivery-fields.js"
+fi
+
+if [ -n "$MIGRATION_SCRIPT" ]; then
+    cd backend 2>/dev/null || cd .
+    node $MIGRATION_SCRIPT || echo -e "${YELLOW}⚠️  迁移脚本执行完成（可能已经迁移过）${NC}"
+    cd $PROJECT_DIR
+    echo -e "${GREEN}✅ 数据库迁移完成${NC}"
+else
+    echo -e "${YELLOW}⚠️  未找到迁移脚本，跳过数据库迁移${NC}"
+fi
 
 echo ""
 echo -e "${GREEN}步骤 5/7: 安装依赖...${NC}"
