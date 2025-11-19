@@ -166,9 +166,13 @@ export function HomePage() {
 
                   <div className="mt-3 text-sm text-gray-500">
                     已售 {product.sold_count} | 库存{' '}
-                    {product.stock_type === 'unlimited'
-                      ? '无限'
-                      : product.available_stock}
+                    {product.stock_type === 'unlimited' ? (
+                      <span className="text-green-600 font-semibold">9999+</span>
+                    ) : (
+                      <span className={product.available_stock < 10 ? 'text-red-600 font-semibold' : ''}>
+                        {product.available_stock}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

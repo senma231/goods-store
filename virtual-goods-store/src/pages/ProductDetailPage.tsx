@@ -134,9 +134,13 @@ export function ProductDetailPage() {
                 <div className="flex items-center gap-4 text-gray-600">
                   <span className="font-medium">库存状态:</span>
                   <span>
-                    {product.stock_type === 'unlimited'
-                      ? '无限库存'
-                      : `${product.available_stock} 件`}
+                    {product.stock_type === 'unlimited' ? (
+                      <span className="text-green-600 font-semibold">9999+ 件</span>
+                    ) : (
+                      <span className={product.available_stock < 10 ? 'text-red-600 font-semibold' : ''}>
+                        {product.available_stock} 件
+                      </span>
+                    )}
                   </span>
                 </div>
 

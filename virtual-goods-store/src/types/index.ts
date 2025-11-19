@@ -24,6 +24,7 @@ export interface Product {
   video_url?: string;
   is_active: boolean;
   is_featured: boolean;
+  delivery_method: 'auto' | 'manual';
   stock_type: 'unlimited' | 'limited';
   total_stock: number;
   available_stock: number;

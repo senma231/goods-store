@@ -43,9 +43,29 @@ CREATE TABLE IF NOT EXISTS products (
     price DECIMAL(10,2) NOT NULL,
     original_price DECIMAL(10,2),
     image_url TEXT,
-    stock_quantity INTEGER DEFAULT 0,
-    sort_order INTEGER DEFAULT 0,
+    gallery_urls TEXT,  -- JSON 数组格式
+    video_url TEXT,
+
+    -- 库存管理
+    stock_quantity INTEGER DEFAULT 0,  -- 保留用于向后兼容
+    stock_type TEXT DEFAULT 'limited' CHECK(stock_type IN ('unlimited', 'limited')),
+    total_stock INTEGER DEFAULT 0,
+    available_stock INTEGER DEFAULT 0,
+    sold_count INTEGER DEFAULT 0,
+
+    -- 发货方式
+    delivery_method TEXT DEFAULT 'auto' CHECK(delivery_method IN ('auto', 'manual')),
+
+    -- 显示和排序
     is_active BOOLEAN DEFAULT 1,
+    is_featured BOOLEAN DEFAULT 0,
+    view_count INTEGER DEFAULT 0,
+    sort_order INTEGER DEFAULT 0,
+
+    -- SEO
+    meta_title TEXT,
+    meta_description TEXT,
+
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

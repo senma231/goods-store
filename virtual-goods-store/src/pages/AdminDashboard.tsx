@@ -139,6 +139,7 @@ export function AdminDashboard() {
     price: '',
     original_price: '',
     image_url: '',
+    delivery_method: 'auto',
     stock_type: 'unlimited',
     total_stock: 0,
     available_stock: 0,
@@ -324,6 +325,7 @@ export function AdminDashboard() {
         price: product.price.toString(),
         original_price: product.original_price?.toString() || '',
         image_url: product.image_url || '',
+        delivery_method: product.delivery_method || 'auto',
         stock_type: product.stock_type,
         total_stock: product.total_stock || 0,
         available_stock: product.available_stock || 0,
@@ -341,6 +343,7 @@ export function AdminDashboard() {
         price: '',
         original_price: '',
         image_url: '',
+        delivery_method: 'auto',
         stock_type: 'unlimited',
         total_stock: 0,
         available_stock: 0,
@@ -1152,7 +1155,13 @@ export function AdminDashboard() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-gray-900">
-                            {product.stock_type === 'unlimited' ? '无限' : product.available_stock}
+                            {product.stock_type === 'unlimited' ? (
+                              <span className="text-green-600 font-semibold">9999+</span>
+                            ) : (
+                              <span className={product.available_stock < 10 ? 'text-red-600 font-semibold' : ''}>
+                                {product.available_stock}
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -1282,6 +1291,23 @@ export function AdminDashboard() {
                       </div>
 
                       <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">发货方式</label>
+                        <select
+                          value={productForm.delivery_method}
+                          onChange={(e) => setProductForm({ ...productForm, delivery_method: e.target.value })}
+                          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="auto">自动发货</option>
+                          <option value="manual">手动发货</option>
+                        </select>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {productForm.delivery_method === 'auto'
+                            ? '支付成功后自动从库存管理中分配虚拟资产'
+                            : '需要管理员手动发货'}
+                        </p>
+                      </div>
+
+                      <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">库存类型</label>
                         <select
                           value={productForm.stock_type}
@@ -1291,18 +1317,24 @@ export function AdminDashboard() {
                           <option value="unlimited">无限库存</option>
                           <option value="limited">有限库存</option>
                         </select>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {productForm.stock_type === 'unlimited'
+                            ? '前端显示为"9999+"，不限制购买数量'
+                            : '库存数量关联库存管理中的真实库存'}
+                        </p>
                       </div>
 
                       {productForm.stock_type === 'limited' && (
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">可用库存</label>
-                          <input
-                            type="number"
-                            value={productForm.available_stock}
-                            onChange={(e) => setProductForm({ ...productForm, available_stock: parseInt(e.target.value) || 0 })}
-                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                            placeholder="0"
-                          />
+                        <div className="col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                          <p className="text-sm text-blue-800 mb-2">
+                            <strong>💡 有限库存说明：</strong>
+                          </p>
+                          <ul className="text-xs text-blue-700 space-y-1 ml-4 list-disc">
+                            <li>库存数量由"库存管理"中的可用资产数量决定</li>
+                            <li>自动发货商品：库存 = 可用资产数量</li>
+                            <li>手动发货商品：需要手动设置库存数量</li>
+                            <li>库存不足时，用户无法购买</li>
+                          </ul>
                         </div>
                       )}
 

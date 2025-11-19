@@ -109,7 +109,7 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
     const {
       name, slug, category_id, description, short_description,
       price, original_price, stock_quantity,
-      stock_type, total_stock, available_stock, is_featured,
+      delivery_method, stock_type, total_stock, available_stock, is_featured,
       gallery_urls, video_url, meta_title, meta_description
     } = req.body;
 
@@ -125,14 +125,14 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
       INSERT INTO products (
         id, name, slug, category_id, description, short_description,
         price, original_price, stock_quantity,
-        stock_type, total_stock, available_stock, is_featured,
+        delivery_method, stock_type, total_stock, available_stock, is_featured,
         gallery_urls, video_url, meta_title, meta_description
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       productId, name, slug, category_id || null, description || null, short_description || null,
       price, original_price || null, stock_quantity || 0,
-      stock_type || 'limited', total_stock || 0, available_stock || 0, is_featured || 0,
+      delivery_method || 'auto', stock_type || 'limited', total_stock || 0, available_stock || 0, is_featured || 0,
       gallery_urls || null, video_url || null, meta_title || null, meta_description || null
     );
 
@@ -160,7 +160,7 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
     const allowedFields = [
       'name', 'slug', 'category_id', 'description', 'short_description',
       'price', 'original_price', 'image_url', 'stock_quantity', 'sort_order', 'is_active',
-      'stock_type', 'total_stock', 'available_stock', 'sold_count', 'view_count', 'is_featured',
+      'delivery_method', 'stock_type', 'total_stock', 'available_stock', 'sold_count', 'view_count', 'is_featured',
       'gallery_urls', 'video_url', 'meta_title', 'meta_description'
     ];
     const updateFields = [];
