@@ -223,24 +223,29 @@ router.get('/', authenticateToken, async (req, res) => {
   try {
     const db = getDb();
 
+    let orders;
     // 如果是管理员，返回所有订单
     if (req.user.role === 'admin') {
-      const orders = db.prepare(`
+      orders = db.prepare(`
         SELECT * FROM orders
         ORDER BY created_at DESC
       `).all();
-
-      return res.json({ orders });
+    } else {
+      // 普通用户只返回自己的订单
+      orders = db.prepare(`
+        SELECT * FROM orders
+        WHERE user_id = ?
+        ORDER BY created_at DESC
+      `).all(req.user.id);
     }
 
-    // 普通用户只返回自己的订单
-    const orders = db.prepare(`
-      SELECT * FROM orders
-      WHERE user_id = ?
-      ORDER BY created_at DESC
-    `).all(req.user.id);
+    // 映射字段：order_status -> status（前端兼容性）
+    const mappedOrders = orders.map(order => ({
+      ...order,
+      status: order.order_status
+    }));
 
-    res.json({ orders });
+    res.json({ orders: mappedOrders });
   } catch (error) {
     console.error('获取订单列表错误:', error);
     res.status(500).json({ error: '获取订单列表失败' });
@@ -485,6 +490,84 @@ router.post('/:id/refund', authenticateToken, requireAdmin, async (req, res) => 
   } catch (error) {
     console.error('退款错误:', error);
     res.status(500).json({ error: error.message || '退款失败' });
+  }
+});
+
+// 更新订单备注 (管理员)
+router.patch('/:id/notes', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { notes } = req.body;
+    const db = getDb();
+
+    // 检查订单是否存在
+    const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
+    if (!order) {
+      return res.status(404).json({ error: '订单不存在' });
+    }
+
+    // 更新备注
+    db.prepare(`
+      UPDATE orders
+      SET notes = ?, updated_at = datetime('now')
+      WHERE id = ?
+    `).run(notes || null, id);
+
+    console.log(`订单备注已更新: ${id}`);
+
+    res.json({
+      success: true,
+      message: '备注已更新'
+    });
+  } catch (error) {
+    console.error('更新订单备注错误:', error);
+    res.status(500).json({ error: '更新备注失败' });
+  }
+});
+
+// 删除订单 (管理员)
+router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = getDb();
+
+    // 检查订单是否存在
+    const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
+    if (!order) {
+      return res.status(404).json({ error: '订单不存在' });
+    }
+
+    // 检查订单状态
+    if (order.payment_status === 'paid' && order.order_status !== 'refunded') {
+      return res.status(400).json({ error: '已支付且未退款的订单无法删除' });
+    }
+
+    // 删除订单相关数据（使用事务）
+    const deleteOrder = db.transaction(() => {
+      // 删除发货记录
+      db.prepare('DELETE FROM deliveries WHERE order_id = ?').run(id);
+
+      // 删除订单项
+      db.prepare('DELETE FROM order_items WHERE order_id = ?').run(id);
+
+      // 删除支付记录
+      db.prepare('DELETE FROM payments WHERE order_id = ?').run(id);
+
+      // 删除订单
+      db.prepare('DELETE FROM orders WHERE id = ?').run(id);
+    });
+
+    deleteOrder();
+
+    console.log(`订单已删除: ${id}`);
+
+    res.json({
+      success: true,
+      message: '订单已删除'
+    });
+  } catch (error) {
+    console.error('删除订单错误:', error);
+    res.status(500).json({ error: '删除订单失败' });
   }
 });
 

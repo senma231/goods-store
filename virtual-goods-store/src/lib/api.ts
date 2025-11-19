@@ -256,6 +256,19 @@ export const orders = {
       method: 'POST',
     });
   },
+
+  async updateNotes(orderId: string, notes: string) {
+    return request<{ success: boolean; message: string }>(`/orders/${orderId}/notes`, {
+      method: 'PATCH',
+      body: JSON.stringify({ notes }),
+    });
+  },
+
+  async delete(orderId: string) {
+    return request<{ success: boolean; message: string }>(`/orders/${orderId}`, {
+      method: 'DELETE',
+    });
+  },
 };
 
 // 支付 API
