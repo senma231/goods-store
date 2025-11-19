@@ -46,18 +46,20 @@ echo -e "${GREEN}步骤 1/7: 备份数据库...${NC}"
 
 # 查找数据库文件
 DB_FILE=""
-if [ -f "backend/database.sqlite" ]; then
+if [ -f "backend/data/database.db" ]; then
+    DB_FILE="backend/data/database.db"
+elif [ -f "backend/database.db" ]; then
+    DB_FILE="backend/database.db"
+elif [ -f "backend/database.sqlite" ]; then
     DB_FILE="backend/database.sqlite"
 elif [ -f "backend/data/database.sqlite" ]; then
     DB_FILE="backend/data/database.sqlite"
-elif [ -f "database.sqlite" ]; then
-    DB_FILE="database.sqlite"
 else
     echo -e "${YELLOW}⚠️  未找到数据库文件，跳过备份${NC}"
     echo "   常见位置："
-    echo "   - backend/database.sqlite"
+    echo "   - backend/data/database.db"
+    echo "   - backend/database.db"
     echo "   - backend/data/database.sqlite"
-    echo "   - database.sqlite"
 fi
 
 if [ -n "$DB_FILE" ]; then
