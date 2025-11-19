@@ -68,8 +68,9 @@ app.use(cors(corsOptions));
 app.use('/api/payments/stripe/webhook', express.raw({ type: 'application/json' }));
 
 // 2. 为其他所有路由配置 JSON 解析（跳过 webhook 路径）
+// 注意：req.originalUrl 包含完整路径，req.path 只包含路由内的路径
 app.use((req, res, next) => {
-  if (req.path === '/api/payments/stripe/webhook') {
+  if (req.originalUrl === '/api/payments/stripe/webhook' || req.originalUrl.startsWith('/api/payments/stripe/webhook?')) {
     next();
   } else {
     express.json()(req, res, next);
