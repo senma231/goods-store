@@ -205,7 +205,8 @@ router.post('/confirm-payment', async (req, res) => {
 });
 
 // Stripe Webhook
-router.post('/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+// 注意：express.raw() 中间件已在 server.js 中全局配置
+router.post('/stripe/webhook', async (req, res) => {
   try {
     const config = getStripeConfig();
     const db = getDb();

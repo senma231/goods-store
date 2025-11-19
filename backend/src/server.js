@@ -59,6 +59,11 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+
+// Stripe Webhook 需要原始 body，必须在 express.json() 之前处理
+app.use('/api/payments/stripe/webhook', express.raw({ type: 'application/json' }));
+
+// 其他路由使用 JSON 解析
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
