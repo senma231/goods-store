@@ -20,14 +20,31 @@ function getStripeConfig() {
 }
 
 // 从数据库获取 USDT 配置
-function getUSDTConfig() {
+function getUSDTConfig(chain = null) {
   const db = getDb();
-  const walletAddressSetting = db.prepare('SELECT setting_value FROM site_settings WHERE setting_key = ?').get('usdt_wallet_address');
+
+  // 获取默认链
   const chainSetting = db.prepare('SELECT setting_value FROM site_settings WHERE setting_key = ?').get('usdt_default_chain');
+  const defaultChain = chainSetting?.setting_value || 'TRC20';
+
+  // 确定要使用的链
+  const targetChain = chain || defaultChain;
+
+  // 根据链类型获取对应的钱包地址
+  const settingKey = `usdt_wallet_address_${targetChain.toLowerCase()}`;
+  const walletAddressSetting = db.prepare('SELECT setting_value FROM site_settings WHERE setting_key = ?').get(settingKey);
+
+  // 如果没有配置特定链的地址，尝试使用通用地址（向后兼容）
+  let walletAddress = walletAddressSetting?.setting_value;
+  if (!walletAddress) {
+    const generalSetting = db.prepare('SELECT setting_value FROM site_settings WHERE setting_key = ?').get('usdt_wallet_address');
+    walletAddress = generalSetting?.setting_value || process.env.USDT_WALLET_ADDRESS;
+  }
 
   return {
-    walletAddress: walletAddressSetting?.setting_value || process.env.USDT_WALLET_ADDRESS,
-    defaultChain: chainSetting?.setting_value || 'TRC20'
+    walletAddress,
+    defaultChain,
+    chain: targetChain
   };
 }
 
@@ -259,14 +276,7 @@ router.post('/stripe/webhook', express.raw({ type: 'application/json' }), async 
 // USDT 创建支付地址
 router.post('/usdt/create-payment', async (req, res) => {
   try {
-    const config = getUSDTConfig();
-
-    if (!config.walletAddress) {
-      return res.status(500).json({ error: 'USDT 钱包地址未配置，请在系统设置中配置 usdt_wallet_address' });
-    }
-
     const { order_id, amount, chain } = req.body;
-    const paymentChain = chain || config.defaultChain;
 
     if (!order_id || !amount) {
       return res.status(400).json({ error: '订单ID和金额不能为空' });
@@ -277,6 +287,16 @@ router.post('/usdt/create-payment', async (req, res) => {
 
     if (!order) {
       return res.status(404).json({ error: '订单不存在' });
+    }
+
+    // 获取指定链的配置
+    const config = getUSDTConfig(chain);
+    const paymentChain = config.chain;
+
+    if (!config.walletAddress) {
+      return res.status(500).json({
+        error: `${paymentChain} 钱包地址未配置，请在系统设置中配置 usdt_wallet_address_${paymentChain.toLowerCase()}`
+      });
     }
 
     // 使用配置的钱包地址

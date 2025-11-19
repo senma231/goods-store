@@ -501,11 +501,16 @@ export function AdminDashboard() {
           environment: publishableKey?.setting?.setting_value?.startsWith('pk_live') ? 'production' : 'test'
         });
       } else if (method.method_type === 'usdt') {
-        const walletAddress = await siteSettings.adminGet('usdt_wallet_address').catch(() => ({ setting: null }));
+        // 加载多链钱包地址配置
+        const trc20Address = await siteSettings.adminGet('usdt_wallet_address_trc20').catch(() => ({ setting: null }));
+        const erc20Address = await siteSettings.adminGet('usdt_wallet_address_erc20').catch(() => ({ setting: null }));
+        const bep20Address = await siteSettings.adminGet('usdt_wallet_address_bep20').catch(() => ({ setting: null }));
         const defaultChain = await siteSettings.adminGet('usdt_default_chain').catch(() => ({ setting: null }));
 
         setPaymentConfig({
-          addresses: walletAddress?.setting?.setting_value ? [walletAddress.setting.setting_value] : [],
+          trc20_address: trc20Address?.setting?.setting_value || '',
+          erc20_address: erc20Address?.setting?.setting_value || '',
+          bep20_address: bep20Address?.setting?.setting_value || '',
           chain_type: defaultChain?.setting?.setting_value || 'TRC20',
           min_confirmations: 1,
           payment_timeout: 30
@@ -560,17 +565,42 @@ export function AdminDashboard() {
           });
         }
       } else if (editingPaymentMethod.method_type === 'usdt') {
-        // 保存 USDT 配置到 site_settings
-        if (paymentConfig.addresses && paymentConfig.addresses.length > 0) {
+        // 保存 USDT 配置到 site_settings - 支持多链钱包地址
+
+        // 保存 TRC20 地址
+        if (paymentConfig.trc20_address) {
           await siteSettings.createOrUpdate({
-            setting_key: 'usdt_wallet_address',
-            setting_value: paymentConfig.addresses[0],
+            setting_key: 'usdt_wallet_address_trc20',
+            setting_value: paymentConfig.trc20_address,
             setting_type: 'string',
             category: 'payment',
-            description: 'USDT 收款钱包地址'
+            description: 'USDT TRC20 收款钱包地址'
           });
         }
 
+        // 保存 ERC20 地址
+        if (paymentConfig.erc20_address) {
+          await siteSettings.createOrUpdate({
+            setting_key: 'usdt_wallet_address_erc20',
+            setting_value: paymentConfig.erc20_address,
+            setting_type: 'string',
+            category: 'payment',
+            description: 'USDT ERC20 收款钱包地址'
+          });
+        }
+
+        // 保存 BEP20 地址
+        if (paymentConfig.bep20_address) {
+          await siteSettings.createOrUpdate({
+            setting_key: 'usdt_wallet_address_bep20',
+            setting_value: paymentConfig.bep20_address,
+            setting_type: 'string',
+            category: 'payment',
+            description: 'USDT BEP20 收款钱包地址'
+          });
+        }
+
+        // 保存默认链类型
         if (paymentConfig.chain_type) {
           await siteSettings.createOrUpdate({
             setting_key: 'usdt_default_chain',
@@ -1761,32 +1791,65 @@ export function AdminDashboard() {
                     {/* USDT配置 */}
                     {editingPaymentMethod.method_type === 'usdt' && (
                       <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">收款地址列表</label>
-                          <textarea
-                            value={(paymentConfig.addresses || []).join('\n')}
-                            onChange={(e) => setPaymentConfig({ 
-                              ...paymentConfig, 
-                              addresses: e.target.value.split('\n').filter(a => a.trim()) 
-                            })}
-                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                            rows={5}
-                            placeholder="每行一个地址&#10;TRC20: TAbcdefg...&#10;ERC20: 0xabcdef..."
-                          />
-                          <p className="text-xs text-gray-500 mt-1">支持多个地址，每行一个</p>
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                          <p className="text-sm text-blue-800">
+                            💡 <strong>多链钱包配置说明：</strong>
+                          </p>
+                          <ul className="text-xs text-blue-700 mt-2 space-y-1 ml-4 list-disc">
+                            <li>为每条链配置独立的钱包地址</li>
+                            <li>用户选择不同链时，会显示对应的钱包地址</li>
+                            <li>推荐使用 TRC20（手续费最低）</li>
+                          </ul>
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">链类型</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">TRC20 钱包地址 (波场)</label>
+                          <input
+                            type="text"
+                            value={paymentConfig.trc20_address || ''}
+                            onChange={(e) => setPaymentConfig({ ...paymentConfig, trc20_address: e.target.value })}
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                            placeholder="T开头的地址，如: TAbcdefg..."
+                          />
+                          <p className="text-xs text-gray-500 mt-1">推荐使用，手续费最低（约 1 USDT）</p>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">ERC20 钱包地址 (以太坊)</label>
+                          <input
+                            type="text"
+                            value={paymentConfig.erc20_address || ''}
+                            onChange={(e) => setPaymentConfig({ ...paymentConfig, erc20_address: e.target.value })}
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                            placeholder="0x开头的地址，如: 0xabcdef..."
+                          />
+                          <p className="text-xs text-gray-500 mt-1">手续费较高（约 5-20 USDT）</p>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">BEP20 钱包地址 (币安智能链)</label>
+                          <input
+                            type="text"
+                            value={paymentConfig.bep20_address || ''}
+                            onChange={(e) => setPaymentConfig({ ...paymentConfig, bep20_address: e.target.value })}
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                            placeholder="0x开头的地址，如: 0xabcdef..."
+                          />
+                          <p className="text-xs text-gray-500 mt-1">手续费适中（约 0.5-2 USDT）</p>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">默认链类型</label>
                           <select
                             value={paymentConfig.chain_type || 'TRC20'}
                             onChange={(e) => setPaymentConfig({ ...paymentConfig, chain_type: e.target.value })}
                             className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                           >
-                            <option value="TRC20">TRC20 (波场)</option>
+                            <option value="TRC20">TRC20 (波场) - 推荐</option>
                             <option value="ERC20">ERC20 (以太坊)</option>
                             <option value="BEP20">BEP20 (币安智能链)</option>
                           </select>
+                          <p className="text-xs text-gray-500 mt-1">用户默认看到的链类型</p>
                         </div>
 
                         <div>
