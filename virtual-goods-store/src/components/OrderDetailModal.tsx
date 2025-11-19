@@ -83,20 +83,20 @@ export function OrderDetailModal({ order, onClose, onUpdate }: OrderDetailModalP
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-0 sm:p-4">
+      <div className="bg-white rounded-none sm:rounded-xl shadow-2xl w-full sm:max-w-4xl h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900">订单详情</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+        <div className="sticky top-0 bg-white border-b px-4 sm:px-6 py-4 flex items-center justify-between">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900">订单详情</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600" type="button">
             <X className="w-6 h-6" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
           {/* 基本信息 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
               <label className="text-sm text-gray-500">订单号</label>
               <p className="font-mono font-semibold">{order.order_number}</p>

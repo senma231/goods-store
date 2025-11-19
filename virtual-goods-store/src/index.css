@@ -27,7 +27,41 @@
   }
 }
 
+/* 移动端优化 */
+@layer utilities {
+  /* 防止移动端文本过小 */
+  @media (max-width: 640px) {
+    html {
+      font-size: 16px;
+    }
 
+    /* 确保按钮足够大，方便点击 */
+    button, a {
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    /* 表格横向滚动 */
+    table {
+      display: block;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+
+    /* 模态框在移动端全屏 */
+    .modal-mobile-fullscreen {
+      @apply fixed inset-0 m-0 max-w-none max-h-none rounded-none;
+    }
+  }
+
+  /* 触摸设备优化 */
+  @media (hover: none) and (pointer: coarse) {
+    /* 增加可点击区域 */
+    button, a, input[type="checkbox"], input[type="radio"] {
+      padding: 0.75rem;
+    }
+  }
+}
 
 img {
   object-position: top;
