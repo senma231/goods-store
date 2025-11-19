@@ -142,24 +142,27 @@ router.post('/confirm-payment', async (req, res) => {
       return res.status(404).json({ error: '支付记录不存在' });
     }
 
-    // 更新支付状态
-    db.prepare(`
+    // 更新支付状态（使用事务确保原子性）
+    const updateResult = db.prepare(`
       UPDATE payments
       SET status = 'completed', updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
+      WHERE id = ? AND status != 'completed'
     `).run(payment.id);
 
-    // 更新订单状态
-    db.prepare(`
+    // 更新订单状态（只有在支付状态更新成功时才更新订单）
+    const orderUpdateResult = db.prepare(`
       UPDATE orders
-      SET payment_status = 'paid', order_status = 'processing', updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
+      SET payment_status = 'paid', order_status = 'completed', updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND payment_status != 'paid'
     `).run(order_id);
 
-    console.log(`✅ 订单 ${order_id} 支付确认成功${alreadyPaid ? '（已支付，跳过通知）' : ''}`);
+    // 只有在订单状态真正被更新时才发送通知（防止重复）
+    const isFirstTimePayment = orderUpdateResult.changes > 0;
+
+    console.log(`✅ 订单 ${order_id} 支付确认成功${!isFirstTimePayment ? '（已支付，跳过通知）' : ''}`);
 
     // 发送支付成功通知（仅在首次支付时发送，避免重复）
-    if (!alreadyPaid) {
+    if (isFirstTimePayment) {
       try {
         const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(order_id);
         const orderItems = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order_id);
@@ -184,7 +187,7 @@ router.post('/confirm-payment', async (req, res) => {
     }
 
     // 自动发货（仅在首次支付时发货，避免重复）
-    if (!alreadyPaid) {
+    if (isFirstTimePayment) {
       try {
         const deliveryResult = await deliverOrder(order_id);
         console.log(`✅ 订单 ${order_id} 自动发货成功:`, deliveryResult);
@@ -224,22 +227,32 @@ router.post('/stripe/webhook', async (req, res) => {
     if (event.type === 'payment_intent.succeeded') {
       const paymentIntent = event.data.object;
 
-      // 更新支付状态
-      db.prepare(`
+      // 查询支付记录
+      const payment = db.prepare('SELECT * FROM payments WHERE stripe_payment_intent_id = ?').get(paymentIntent.id);
+
+      if (!payment) {
+        console.log(`⚠️ Stripe Webhook: 未找到支付记录 ${paymentIntent.id}`);
+        return res.json({ received: true });
+      }
+
+      // 更新支付状态（只有在未完成时才更新）
+      const paymentUpdateResult = db.prepare(`
         UPDATE payments
         SET status = 'completed', updated_at = CURRENT_TIMESTAMP
-        WHERE stripe_payment_intent_id = ?
+        WHERE stripe_payment_intent_id = ? AND status != 'completed'
       `).run(paymentIntent.id);
 
-      // 更新订单状态
-      const payment = db.prepare('SELECT * FROM payments WHERE stripe_payment_intent_id = ?').get(paymentIntent.id);
-      if (payment) {
-        db.prepare(`
-          UPDATE orders
-          SET payment_status = 'paid', order_status = 'processing', updated_at = CURRENT_TIMESTAMP
-          WHERE id = ?
-        `).run(payment.order_id);
+      // 更新订单状态（只有在未支付时才更新）
+      const orderUpdateResult = db.prepare(`
+        UPDATE orders
+        SET payment_status = 'paid', order_status = 'completed', updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND payment_status != 'paid'
+      `).run(payment.order_id);
 
+      // 只有在订单状态真正被更新时才发送通知和发货（防止重复）
+      const isFirstTimePayment = orderUpdateResult.changes > 0;
+
+      if (isFirstTimePayment) {
         console.log(`✅ Stripe Webhook: 订单 ${payment.order_id} 支付成功`);
 
         // 发送支付成功通知
@@ -264,6 +277,8 @@ router.post('/stripe/webhook', async (req, res) => {
           console.error(`Stripe Webhook: 订单 ${payment.order_id} 自动发货失败:`, deliveryError);
           // 发货失败不影响 webhook 响应
         }
+      } else {
+        console.log(`⏭️  Stripe Webhook: 订单 ${payment.order_id} 已处理，跳过重复通知`);
       }
     }
 
