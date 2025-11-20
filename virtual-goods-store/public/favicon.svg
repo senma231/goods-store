@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- 背景圆形 -->
+  <circle cx="50" cy="50" r="48" fill="#2563eb"/>
+  
+  <!-- 购物袋图标 -->
+  <g fill="white">
+    <!-- 袋子主体 -->
+    <path d="M 30 35 L 70 35 L 75 75 Q 75 80 70 80 L 30 80 Q 25 80 25 75 L 30 35 Z"/>
+    
+    <!-- 手柄 -->
+    <path d="M 35 35 Q 35 25 40 20 Q 45 15 50 15 Q 55 15 60 20 Q 65 25 65 35" 
+          fill="none" stroke="white" stroke-width="3"/>
+    
+    <!-- 装饰点 -->
+    <circle cx="42" cy="55" r="2"/>
+    <circle cx="50" cy="55" r="2"/>
+    <circle cx="58" cy="55" r="2"/>
+  </g>
+</svg>
+

@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import { Navbar } from './components/Navbar';
+import { DynamicHead } from './components/DynamicHead';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
@@ -19,6 +20,7 @@ function App() {
     <Router>
       <AuthProvider>
         <CartProvider>
+          <DynamicHead />
           <div className="min-h-screen bg-gray-50">
             <Navbar />
             <Routes>
